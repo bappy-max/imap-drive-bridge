@@ -1,0 +1,55 @@
+{
+  "name": "DOCK — Envoyer via IONOS — validation obligatoire",
+  "description": "Envoie un email réel depuis baptiste.cadosch@cabinethemmes.com via la passerelle SMTP interne. Avant toute exécution en production, exiger l'autorisation explicite de l'utilisateur sur les destinataires, l'objet, le corps exact et les pièces jointes. Utiliser un requestId unique par message approuvé. Pour une réponse, transmettre le Message-ID original dans inReplyTo et la chaîne complète dans references.",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dock-ionos-send",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "id": "dock-ionos-send-webhook",
+      "name": "Demande d'envoi validée"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://dock-ionos-smtp:3000/v1/send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 75000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [280, 0],
+      "id": "dock-ionos-smtp-request",
+      "name": "Envoyer par la passerelle IONOS"
+    }
+  ],
+  "connections": {
+    "Demande d'envoi validée": {
+      "main": [[{
+        "node": "Envoyer par la passerelle IONOS",
+        "type": "main",
+        "index": 0
+      }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  }
+}
