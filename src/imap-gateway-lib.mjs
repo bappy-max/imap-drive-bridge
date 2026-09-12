@@ -87,15 +87,11 @@ export function normalizeQueryRequest(input, config, now = new Date()) {
   return { version: 1, action, mailbox, uid, uidValidity, messageId };
 }
 
-export function buildGatewaySearchQuery(request, mailbox, sentMailbox) {
-  const sentFolder = mailbox === sentMailbox;
-  const query = sentFolder
-    ? { sentSince: request.since }
-    : { since: request.since };
-  if (request.before) {
-    if (sentFolder) query.sentBefore = request.before;
-    else query.before = request.before;
-  }
+export function buildGatewaySearchQuery(request) {
+  // IONOS date-window searches are reliable with RFC 5322 Date header criteria
+  // (SENTSINCE/SENTBEFORE) in both INBOX and the configured sent folder.
+  const query = { sentSince: request.since };
+  if (request.before) query.sentBefore = request.before;
   const terms = serverSearchTerms(request.terms);
   if (terms.length === 1) query.text = terms[0];
   else if (terms.length > 1) query.or = terms.map((term) => ({ text: term }));
