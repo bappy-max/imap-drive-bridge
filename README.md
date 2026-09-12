@@ -23,6 +23,8 @@ Connecteur minimal pour exposer à DOCK un **seul dossier métier** d'une boîte
 
 `DOCK (message validé) → n8n/MCP → passerelle SMTP interne → IONOS SMTP`
 
+`DOCK → n8n/MCP → passerelle IMAP interne en lecture seule → IONOS IMAP`
+
 ## Déploiement en deux phases
 
 ### 1. Découverte sûre
@@ -87,6 +89,14 @@ Un `requestId` déjà vu n'est jamais renvoyé automatiquement. Si le premier es
 Après une remise SMTP confirmée, la passerelle ajoute la copie RFC822 exacte au dossier IMAP `Objets envoyés`. La remise SMTP est enregistrée avant cet archivage : un échec IMAP ne transforme donc jamais un email déjà parti en nouvel envoi à retenter. Une répétition du même `requestId` peut seulement reprendre l'archivage manquant, après contrôle du `Message-ID`, sans renvoyer l'email.
 
 L'envoi effectif reste une action externe : le workflow MCP doit exiger la validation du destinataire, de l'objet et du corps exacts avant son exécution.
+
+## Passerelle IMAP à la demande
+
+Le service `dock-ionos-imap` fournit à DOCK un accès interne sans port hôte. Il ne sait ni envoyer, ni supprimer, ni déplacer, ni modifier les drapeaux des messages. Les seuls dossiers autorisés sont `INBOX` et `Objets envoyés`.
+
+L'action `search` retourne uniquement les enveloppes et identifiants. Une recherche sans terme est limitée aux 31 derniers jours ; une recherche historique exige au moins un terme et reste plafonnée à 50 résultats par dossier. Les actions `get` et `export` exigent le triplet UID, UIDVALIDITY et Message-ID issu d'une recherche précédente. `get` lit ce message précis ; `export` dépose sa version Markdown et ses pièces jointes autorisées dans le dossier Drive privé avec le même état de déduplication que le collecteur pilote.
+
+Importer `n8n/imap-mcp-workflow.json`, sélectionner l'authentification d'en-tête existante sur les deux nœuds, publier puis activer `Available in MCP` seulement après les tests sans contenu et en lecture seule.
 
 Importer ensuite `n8n/smtp-mcp-workflow.json`, sélectionner `Header Auth account 3` sur le Webhook et sur le nœud HTTP Request, puis publier le workflow. N'activer `Available in MCP` qu'après un test de validation et un test d'authentification SMTP sans envoi.
 

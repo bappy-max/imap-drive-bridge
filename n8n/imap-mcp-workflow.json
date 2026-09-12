@@ -1,0 +1,52 @@
+{
+  "name": "DOCK — Rechercher et lire IONOS — accès restreint",
+  "description": "Accès IMAP en lecture seule à baptiste.cadosch@cabinethemmes.com. Schéma body : recherche {version:1,action:'search',mailboxes:['INBOX'|'Objets envoyés'],since:'YYYY-MM-DD',before?:'YYYY-MM-DD',terms?:string[],maxResultsPerMailbox?:1..50}; lecture ou export {version:1,action:'get'|'export',mailbox:'INBOX'|'Objets envoyés',uid:number,uidValidity:string,messageId:string}. Une recherche ancienne exige au moins un terme. search ne lit aucun corps ni pièce jointe. get lit seulement le message identifié. export dépose seulement ce message et ses pièces autorisées dans le dossier Drive privé. Aucun envoi, suppression, déplacement ou changement de drapeau.",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dock-ionos-query",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "id": "dock-ionos-query-webhook",
+      "name": "Requête IONOS bornée"
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "body": "={{ JSON.stringify($json.body) }}",
+        "contentType": "raw",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "options": { "timeout": 75000 },
+        "rawContentType": "application/json",
+        "sendBody": true,
+        "url": "http://dock-ionos-imap:3100/v1/query"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [288, 0],
+      "id": "dock-ionos-query-request",
+      "name": "Interroger IONOS en lecture seule"
+    }
+  ],
+  "connections": {
+    "Requête IONOS bornée": {
+      "main": [[{
+        "node": "Interroger IONOS en lecture seule",
+        "type": "main",
+        "index": 0
+      }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  }
+}

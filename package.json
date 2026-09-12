@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node src/index.mjs",
-    "check": "node --check src/index.mjs && node --check src/lib.mjs && node --check src/healthcheck.mjs && node --check src/smtp-archive.mjs && node --check src/smtp-lib.mjs && node --check src/smtp-server.mjs && node --check src/smtp-healthcheck.mjs",
+    "check": "node --check src/index.mjs && node --check src/lib.mjs && node --check src/healthcheck.mjs && node --check src/imap-gateway-lib.mjs && node --check src/imap-server.mjs && node --check src/imap-healthcheck.mjs && node --check src/smtp-archive.mjs && node --check src/smtp-lib.mjs && node --check src/smtp-server.mjs && node --check src/smtp-healthcheck.mjs",
     "test": "node --test"
   },
   "dependencies": {
