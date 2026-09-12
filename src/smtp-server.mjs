@@ -3,6 +3,7 @@ import { readFile, rename, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import nodemailer from 'nodemailer';
 import { parseBoolean, parsePositiveInt } from './lib.mjs';
+import { appendSentCopy, compileMessage, createMessageCompiler } from './smtp-archive.mjs';
 import { normalizeSendRequest, publicSendResult, secureTokenEqual } from './smtp-lib.mjs';
 
 function log(event, details = {}) {
@@ -39,10 +40,14 @@ function loadConfig() {
     maxAttachmentBytes: parsePositiveInt(process.env.SMTP_MAX_ATTACHMENT_BYTES, 8 * 1024 * 1024, 'SMTP_MAX_ATTACHMENT_BYTES'),
     maxTotalAttachmentBytes: parsePositiveInt(process.env.SMTP_MAX_TOTAL_ATTACHMENT_BYTES, 12 * 1024 * 1024, 'SMTP_MAX_TOTAL_ATTACHMENT_BYTES'),
     maxRequestBytes: parsePositiveInt(process.env.SMTP_MAX_REQUEST_BYTES, 18 * 1024 * 1024, 'SMTP_MAX_REQUEST_BYTES'),
+    imapHost: process.env.IMAP_HOST?.trim(),
+    imapPort: parsePositiveInt(process.env.IMAP_PORT, 993, 'IMAP_PORT'),
+    imapSecure: parseBoolean(process.env.IMAP_SECURE, true),
+    sentMailbox: String(process.env.SMTP_SENT_MAILBOX || 'Objets envoyés').trim(),
   };
 
-  if (!config.user || !config.password || !config.fromAddress || !config.authToken) {
-    throw new Error('SMTP_USER, SMTP_PASSWORD, SMTP_FROM and SMTP_GATEWAY_TOKEN are required');
+  if (!config.user || !config.password || !config.fromAddress || !config.authToken || !config.imapHost || !config.sentMailbox) {
+    throw new Error('SMTP, IMAP and gateway authentication settings are required');
   }
   if (config.fromAddress !== config.user.toLowerCase()) {
     throw new Error('SMTP_FROM must equal SMTP_USER');
@@ -103,6 +108,7 @@ async function main() {
     greetingTimeout: 20_000,
     socketTimeout: 60_000,
   });
+  const compiler = createMessageCompiler();
   const state = await loadState(config.stateFile);
   let stateQueue = Promise.resolve();
   const rateWindow = [];
@@ -169,6 +175,31 @@ async function main() {
         return;
       }
       if (reservation.kind === 'duplicate') {
+        if (reservation.record.status === 'sent' && reservation.record.archiveStatus !== 'archived') {
+          try {
+            const compiled = await compileMessage(compiler, normalized.mail, reservation.record);
+            const archive = await appendSentCopy(
+              config,
+              compiled.raw,
+              reservation.record.messageId || compiled.messageId,
+              reservation.record.sentAt,
+            );
+            await withStateLock(async () => {
+              Object.assign(reservation.record, {
+                archiveStatus: 'archived',
+                archivedAt: new Date().toISOString(),
+              });
+              await saveState(config.stateFile, state);
+            });
+            log('smtp_archive_complete', {
+              requestId: normalized.requestId,
+              recovery: true,
+              alreadyPresent: archive.alreadyPresent,
+            });
+          } catch {
+            log('smtp_archive_failed', { requestId: normalized.requestId, recovery: true });
+          }
+        }
         const code = reservation.record.status === 'sent' ? 200 : 409;
         respond(response, code, publicSendResult(reservation.record, true));
         return;
@@ -176,12 +207,18 @@ async function main() {
 
       rateWindow.push(now);
       try {
-        const info = await transport.sendMail(normalized.mail);
+        const compiled = await compileMessage(compiler, normalized.mail);
+        const info = await transport.sendMail({
+          envelope: normalized.mail.envelope,
+          raw: compiled.raw,
+        });
+        const sentAt = new Date().toISOString();
         await withStateLock(async () => {
           Object.assign(reservation.record, {
             status: 'sent',
-            messageId: info.messageId || null,
-            sentAt: new Date().toISOString(),
+            messageId: compiled.messageId || info.messageId || null,
+            sentAt,
+            archiveStatus: 'pending',
           });
           await saveState(config.stateFile, state);
         });
@@ -190,6 +227,37 @@ async function main() {
           recipientCount: normalized.recipientCount,
           attachmentCount: normalized.attachmentCount,
         });
+
+        try {
+          const archive = await appendSentCopy(
+            config,
+            compiled.raw,
+            reservation.record.messageId,
+            sentAt,
+          );
+          await withStateLock(async () => {
+            Object.assign(reservation.record, {
+              archiveStatus: 'archived',
+              archivedAt: new Date().toISOString(),
+            });
+            await saveState(config.stateFile, state);
+          });
+          log('smtp_archive_complete', {
+            requestId: normalized.requestId,
+            recovery: false,
+            alreadyPresent: archive.alreadyPresent,
+          });
+        } catch {
+          await withStateLock(async () => {
+            Object.assign(reservation.record, {
+              archiveStatus: 'failed',
+              archiveFailedAt: new Date().toISOString(),
+            });
+            await saveState(config.stateFile, state);
+          }).catch(() => {});
+          log('smtp_archive_failed', { requestId: normalized.requestId, recovery: false });
+        }
+
         respond(response, 200, publicSendResult(reservation.record));
       } catch (error) {
         await withStateLock(async () => {
