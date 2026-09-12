@@ -1,0 +1,77 @@
+{
+  "name": "DOCK — IONOS vers Drive — upload restreint",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dock-ionos-ingest",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "id": "dock-ionos-webhook",
+      "name": "IONOS ingest"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "body.contentBase64",
+        "binaryPropertyName": "data",
+        "options": {
+          "fileName": "={{ $('IONOS ingest').item.json.body.fileName }}",
+          "mimeType": "={{ $('IONOS ingest').item.json.body.mimeType }}"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [240, 0],
+      "id": "dock-ionos-convert",
+      "name": "Convertir le fichier"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "inputDataFieldName": "data",
+        "name": "={{ $('IONOS ingest').item.json.body.fileName }}",
+        "folderId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_DRIVE_FOLDER_ID",
+          "mode": "list"
+        },
+        "options": {
+          "simplifyOutput": true
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [480, 0],
+      "id": "dock-ionos-drive-upload",
+      "name": "Déposer dans Drive"
+    }
+  ],
+  "connections": {
+    "IONOS ingest": {
+      "main": [[{
+        "node": "Convertir le fichier",
+        "type": "main",
+        "index": 0
+      }]]
+    },
+    "Convertir le fichier": {
+      "main": [[{
+        "node": "Déposer dans Drive",
+        "type": "main",
+        "index": 0
+      }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,25 @@
+services:
+  dock-ionos-bridge:
+    build:
+      context: .
+    container_name: dock-ionos-bridge
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    networks:
+      - root_default
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    init: true
+
+networks:
+  root_default:
+    external: true
+    name: root_default
