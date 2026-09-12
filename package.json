@@ -3,17 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Read-only IMAP collector that forwards a tightly filtered dossier to an authenticated n8n upload workflow.",
+  "description": "Bounded IONOS IMAP collector and internal SMTP gateway for a controlled n8n workflow.",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "start": "node src/index.mjs",
-    "check": "node --check src/index.mjs && node --check src/lib.mjs && node --check src/healthcheck.mjs",
+    "check": "node --check src/index.mjs && node --check src/lib.mjs && node --check src/healthcheck.mjs && node --check src/smtp-lib.mjs && node --check src/smtp-server.mjs && node --check src/smtp-healthcheck.mjs",
     "test": "node --test"
   },
   "dependencies": {
     "imapflow": "2.0.2",
-    "mailparser": "3.9.25"
+    "mailparser": "3.9.25",
+    "nodemailer": "10.0.9"
   }
 }
