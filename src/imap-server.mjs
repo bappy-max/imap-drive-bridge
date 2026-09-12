@@ -103,11 +103,14 @@ async function readJson(request, maxBytes) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
-async function searchMailbox(client, request, mailbox) {
+async function searchMailbox(client, request, mailbox, config) {
   const lock = await client.getMailboxLock(mailbox, { readOnly: true, acquireTimeout: 30_000 });
   try {
     const uidValidity = String(client.mailbox?.uidValidity ?? '');
-    const found = await client.search(buildGatewaySearchQuery(request), { uid: true });
+    const found = await client.search(
+      buildGatewaySearchQuery(request, mailbox, config.sentMailbox),
+      { uid: true },
+    );
     const uids = (Array.isArray(found) ? found : []).slice(-request.maxResultsPerMailbox).reverse();
     const messages = [];
     for (const uid of uids) {
@@ -274,7 +277,9 @@ async function execute(config, request) {
     await client.connect();
     if (request.action === 'search') {
       const mailboxes = [];
-      for (const mailbox of request.mailboxes) mailboxes.push(await searchMailbox(client, request, mailbox));
+      for (const mailbox of request.mailboxes) {
+        mailboxes.push(await searchMailbox(client, request, mailbox, config));
+      }
       return { ok: true, action: 'search', bodyRead: false, attachmentsRead: false, mailboxes };
     }
     const fetched = await fetchVerifiedMessage(client, request, config);

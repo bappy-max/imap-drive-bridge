@@ -87,9 +87,15 @@ export function normalizeQueryRequest(input, config, now = new Date()) {
   return { version: 1, action, mailbox, uid, uidValidity, messageId };
 }
 
-export function buildGatewaySearchQuery(request) {
-  const query = { since: request.since };
-  if (request.before) query.before = request.before;
+export function buildGatewaySearchQuery(request, mailbox, sentMailbox) {
+  const sentFolder = mailbox === sentMailbox;
+  const query = sentFolder
+    ? { sentSince: request.since }
+    : { since: request.since };
+  if (request.before) {
+    if (sentFolder) query.sentBefore = request.before;
+    else query.before = request.before;
+  }
   const terms = serverSearchTerms(request.terms);
   if (terms.length === 1) query.text = terms[0];
   else if (terms.length > 1) query.or = terms.map((term) => ({ text: term }));
