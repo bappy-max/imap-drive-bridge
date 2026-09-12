@@ -30,15 +30,18 @@ cp .env.example .env
 chmod 600 .env
 mkdir -p data
 chown 1000:1000 data
+install -d -m 700 /root/.dock-ionos-secrets
+touch /root/.dock-ionos-secrets/imap_password /root/.dock-ionos-secrets/n8n_header
+chmod 600 /root/.dock-ionos-secrets/imap_password /root/.dock-ionos-secrets/n8n_header
 ```
 
 Renseigner localement dans `.env` uniquement :
 
 - `IMAP_HOST`
 - `IMAP_USER`
-- `IMAP_PASSWORD`
+- `IMAP_PASSWORD_FILE` doit rester égal à `/run/secrets/imap_password`
 
-Ne jamais placer ces valeurs dans GitHub, un ticket ou un chat.
+Saisir le mot de passe IONOS directement dans `/root/.dock-ionos-secrets/imap_password`, sans le placer dans `.env`, GitHub, un ticket ou un chat. Le jeton du webhook n8n est conservé de la même manière dans `/root/.dock-ionos-secrets/n8n_header`.
 
 Puis :
 

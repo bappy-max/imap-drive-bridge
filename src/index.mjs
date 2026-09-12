@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { readFile, rename, writeFile } from 'node:fs/promises';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
@@ -20,6 +21,14 @@ function log(event, details = {}) {
   process.stdout.write(`${JSON.stringify({ at: new Date().toISOString(), event, ...details })}\n`);
 }
 
+function readSecret(valueName, fileName) {
+  const direct = process.env[valueName];
+  if (direct) return direct;
+  const path = process.env[fileName];
+  if (!path) return undefined;
+  return readFileSync(path, 'utf8').replace(/[\r\n]+$/, '');
+}
+
 function loadConfig() {
   const mode = (process.env.MODE || 'discover').toLowerCase();
   if (!['discover', 'sync'].includes(mode)) throw new Error('MODE must be discover or sync');
@@ -30,7 +39,7 @@ function loadConfig() {
     imapPort: parsePositiveInt(process.env.IMAP_PORT, 993, 'IMAP_PORT'),
     imapSecure: parseBoolean(process.env.IMAP_SECURE, true),
     imapUser: process.env.IMAP_USER?.trim(),
-    imapPassword: process.env.IMAP_PASSWORD,
+    imapPassword: readSecret('IMAP_PASSWORD', 'IMAP_PASSWORD_FILE'),
     mailboxes: String(process.env.MAILBOXES || '').split('|').map((value) => value.trim()).filter(Boolean),
     terms: parseTerms(process.env.FILTER_TERMS),
     since: new Date(`${process.env.SYNC_SINCE || ''}T00:00:00Z`),
@@ -40,7 +49,7 @@ function loadConfig() {
     pollSeconds: parsePositiveInt(process.env.POLL_INTERVAL_SECONDS, 900, 'POLL_INTERVAL_SECONDS'),
     webhookUrl: process.env.N8N_WEBHOOK_URL?.trim(),
     webhookHeaderName: process.env.N8N_HEADER_NAME?.trim() || 'X-DOCK-TOKEN',
-    webhookHeaderValue: process.env.N8N_HEADER_VALUE,
+    webhookHeaderValue: readSecret('N8N_HEADER_VALUE', 'N8N_HEADER_VALUE_FILE'),
     stateFile: process.env.STATE_FILE || '/app/data/state.json',
     heartbeatFile: process.env.HEARTBEAT_FILE || '/tmp/bridge-heartbeat',
   };

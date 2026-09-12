@@ -6,6 +6,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    secrets:
+      - imap_password
+      - n8n_header
     volumes:
       - ./data:/app/data
     networks:
@@ -23,3 +26,9 @@ networks:
   root_default:
     external: true
     name: root_default
+
+secrets:
+  imap_password:
+    file: /root/.dock-ionos-secrets/imap_password
+  n8n_header:
+    file: /root/.dock-ionos-secrets/n8n_header
