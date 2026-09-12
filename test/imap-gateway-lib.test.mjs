@@ -24,7 +24,7 @@ test('allows a bounded unfiltered recent search', () => {
   assert.equal(value.maxResultsPerMailbox, 10);
   assert.deepEqual(
     buildGatewaySearchQuery(value, 'INBOX', 'Objets envoyés'),
-    { since: new Date('2026-09-01T00:00:00.000Z') },
+    { sentSince: new Date('2026-09-01T00:00:00.000Z') },
   );
 });
 
@@ -64,7 +64,7 @@ test('allows a targeted historical search and expands accents', () => {
   });
 });
 
-test('uses internal dates for received mail and sent dates for the sent folder', () => {
+test('uses IONOS sent-date criteria for both received and sent mail', () => {
   const value = normalizeQueryRequest({
     version: 1,
     action: 'search',
@@ -74,8 +74,8 @@ test('uses internal dates for received mail and sent dates for the sent folder',
   }, config, now);
 
   assert.deepEqual(buildGatewaySearchQuery(value, 'INBOX', 'Objets envoyés'), {
-    since: new Date('2026-09-01T00:00:00.000Z'),
-    before: new Date('2026-09-13T00:00:00.000Z'),
+    sentSince: new Date('2026-09-01T00:00:00.000Z'),
+    sentBefore: new Date('2026-09-13T00:00:00.000Z'),
   });
   assert.deepEqual(buildGatewaySearchQuery(value, 'Objets envoyés', 'Objets envoyés'), {
     sentSince: new Date('2026-09-01T00:00:00.000Z'),
