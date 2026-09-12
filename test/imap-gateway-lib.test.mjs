@@ -22,7 +22,10 @@ test('allows a bounded unfiltered recent search', () => {
   assert.deepEqual(value.mailboxes, ['INBOX', 'Objets envoyés']);
   assert.deepEqual(value.terms, []);
   assert.equal(value.maxResultsPerMailbox, 10);
-  assert.deepEqual(buildGatewaySearchQuery(value), { since: new Date('2026-09-01T00:00:00.000Z') });
+  assert.deepEqual(
+    buildGatewaySearchQuery(value, 'INBOX', 'Objets envoyés'),
+    { since: new Date('2026-09-01T00:00:00.000Z') },
+  );
 });
 
 test('requires terms for historical searches and bounds result counts', () => {
@@ -54,10 +57,29 @@ test('allows a targeted historical search and expands accents', () => {
     before: '2026-09-13',
     terms: ['Épinettes'],
   }, config, now);
-  assert.deepEqual(buildGatewaySearchQuery(value), {
-    since: new Date('2020-01-01T00:00:00.000Z'),
-    before: new Date('2026-09-13T00:00:00.000Z'),
+  assert.deepEqual(buildGatewaySearchQuery(value, 'Objets envoyés', 'Objets envoyés'), {
+    sentSince: new Date('2020-01-01T00:00:00.000Z'),
+    sentBefore: new Date('2026-09-13T00:00:00.000Z'),
     or: [{ text: 'Épinettes' }, { text: 'Epinettes' }],
+  });
+});
+
+test('uses internal dates for received mail and sent dates for the sent folder', () => {
+  const value = normalizeQueryRequest({
+    version: 1,
+    action: 'search',
+    mailboxes: ['INBOX', 'Objets envoyés'],
+    since: '2026-09-01',
+    before: '2026-09-13',
+  }, config, now);
+
+  assert.deepEqual(buildGatewaySearchQuery(value, 'INBOX', 'Objets envoyés'), {
+    since: new Date('2026-09-01T00:00:00.000Z'),
+    before: new Date('2026-09-13T00:00:00.000Z'),
+  });
+  assert.deepEqual(buildGatewaySearchQuery(value, 'Objets envoyés', 'Objets envoyés'), {
+    sentSince: new Date('2026-09-01T00:00:00.000Z'),
+    sentBefore: new Date('2026-09-13T00:00:00.000Z'),
   });
 });
 
