@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { normalizeSendRequest, secureTokenEqual } from '../src/smtp-lib.mjs';
+import { normalizeSendRequest, publicSendResult, secureTokenEqual } from '../src/smtp-lib.mjs';
 
 const config = {
   fromName: 'Cabinet Hemmès',
@@ -79,4 +79,22 @@ test('compares gateway tokens without exposing their length or value', () => {
   assert.equal(secureTokenEqual('same-token', 'same-token'), true);
   assert.equal(secureTokenEqual('wrong', 'same-token'), false);
   assert.equal(secureTokenEqual('', 'same-token'), false);
+});
+
+test('reports SMTP delivery and sent-folder archival independently', () => {
+  assert.deepEqual(publicSendResult({
+    status: 'sent',
+    archiveStatus: 'failed',
+    requestId: 'dock-test-0005',
+    messageId: '<message@example.com>',
+    sentAt: '2026-09-12T18:00:00.000Z',
+  }), {
+    ok: true,
+    status: 'sent',
+    archiveStatus: 'failed',
+    duplicate: false,
+    requestId: 'dock-test-0005',
+    messageId: '<message@example.com>',
+    sentAt: '2026-09-12T18:00:00.000Z',
+  });
 });

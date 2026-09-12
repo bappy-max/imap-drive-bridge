@@ -143,6 +143,7 @@ export function publicSendResult(record, duplicate = false) {
   return {
     ok: record.status === 'sent',
     status: record.status,
+    archiveStatus: record.archiveStatus || null,
     duplicate,
     requestId: record.requestId,
     messageId: record.messageId || null,

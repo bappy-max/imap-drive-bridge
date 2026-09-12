@@ -84,6 +84,8 @@ Renseigner dans `.env` `SMTP_USER` et `SMTP_FROM` avec la même adresse IONOS. L
 
 Un `requestId` déjà vu n'est jamais renvoyé automatiquement. Si le premier essai est confirmé comme envoyé, un appel identique retourne le résultat mémorisé ; si son état est incertain ou en échec, un nouvel identifiant explicite est requis.
 
+Après une remise SMTP confirmée, la passerelle ajoute la copie RFC822 exacte au dossier IMAP `Objets envoyés`. La remise SMTP est enregistrée avant cet archivage : un échec IMAP ne transforme donc jamais un email déjà parti en nouvel envoi à retenter. Une répétition du même `requestId` peut seulement reprendre l'archivage manquant, après contrôle du `Message-ID`, sans renvoyer l'email.
+
 L'envoi effectif reste une action externe : le workflow MCP doit exiger la validation du destinataire, de l'objet et du corps exacts avant son exécution.
 
 Importer ensuite `n8n/smtp-mcp-workflow.json`, sélectionner `Header Auth account 3` sur le Webhook et sur le nœud HTTP Request, puis publier le workflow. N'activer `Available in MCP` qu'après un test de validation et un test d'authentification SMTP sans envoi.
